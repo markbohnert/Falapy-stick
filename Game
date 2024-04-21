@@ -1,0 +1,114 @@
+import pygame
+import random
+
+# Initialize Pygame
+pygame.init()
+
+# Screen dimensions
+SCREEN_WIDTH = 400
+SCREEN_HEIGHT = 600
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
+# Stickman parameters
+STICKMAN_WIDTH = 50
+STICKMAN_HEIGHT = 50
+STICKMAN_COLOR = (255, 0, 0)
+
+# Gravity
+GRAVITY = 0.25
+
+# Pipe parameters
+PIPE_WIDTH = 50
+PIPE_GAP = 200
+PIPE_SPEED = 3
+
+# Initialize screen
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Flappy Stickman")
+
+clock = pygame.time.Clock()
+
+# Load stickman image
+stickman_img = pygame.Surface((STICKMAN_WIDTH, STICKMAN_HEIGHT))
+stickman_img.fill(STICKMAN_COLOR)
+
+# Function to draw stickman
+def draw_stickman(x, y):
+    screen.blit(stickman_img, (x, y))
+
+# Function to generate pipes
+def generate_pipes():
+    pipe_height = random.randint(100, 400)
+    top_pipe = pygame.Rect(SCREEN_WIDTH, 0, PIPE_WIDTH, pipe_height)
+    bottom_pipe = pygame.Rect(SCREEN_WIDTH, pipe_height + PIPE_GAP, PIPE_WIDTH, SCREEN_HEIGHT - pipe_height - PIPE_GAP)
+    return top_pipe, bottom_pipe
+
+# Main game loop
+def game():
+    stickman_x = 50
+    stickman_y = SCREEN_HEIGHT // 2
+    stickman_velocity = 0
+
+    pipes = []
+    pipes.append(generate_pipes())
+
+    score = 0
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    stickman_velocity = -8
+
+        # Update stickman position
+        stickman_velocity += GRAVITY
+        stickman_y += stickman_velocity
+
+        # Generate new pipes
+        if pipes[-1][0].x < SCREEN_WIDTH - 200:
+            pipes.append(generate_pipes())
+
+        # Move pipes to the left
+        for pipe in pipes:
+            pipe[0].x -= PIPE_SPEED
+            pipe[1].x -= PIPE_SPEED
+
+            # Check for collisions
+            if pipe[0].colliderect(pygame.Rect(stickman_x, stickman_y, STICKMAN_WIDTH, STICKMAN_HEIGHT)) or \
+               pipe[1].colliderect(pygame.Rect(stickman_x, stickman_y, STICKMAN_WIDTH, STICKMAN_HEIGHT)) or \
+               stickman_y <= 0 or stickman_y >= SCREEN_HEIGHT - STICKMAN_HEIGHT:
+                return score
+
+            # Increment score if stickman passes through pipe gap
+            if pipe[0].x + PIPE_WIDTH < stickman_x and not pipe[0].passed:
+                pipe[0].passed = True
+                score += 1
+
+        # Remove off-screen pipes
+        if pipes[0][0].x + PIPE_WIDTH < 0:
+            pipes.pop(0)
+
+        # Draw everything
+        screen.fill(WHITE)
+        for pipe in pipes:
+            pygame.draw.rect(screen, BLACK, pipe[0])
+            pygame.draw.rect(screen, BLACK, pipe[1])
+        draw_stickman(stickman_x, stickman_y)
+
+        # Display score
+        font = pygame.font.SysFont(None, 36)
+        score_text = font.render(f"Score: {score}", True, BLACK)
+        screen.blit(score_text, (10, 10))
+
+        pygame.display.update()
+        clock.tick(60)
+
+# Run the game
+final_score = game()
+print("Game Over! Final Score:", final_score)
